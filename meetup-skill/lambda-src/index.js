@@ -36,17 +36,13 @@ exports.handler = function (event, context) {
 			 * handover request and session
 			 * handover callback that suceeds the context, important for asynch calls e.g. POST, GET REST calls
 			**/
-
-			/**
-			 * TODO: make a function that handles intent requests
-			 * INPUT:
-			 * - event.request
-			 * - event.session
-			 * - function callback(sessionAttributes, speechletResponse) {
-             *     context.succeed(buildResponse(sessionAttributes, speechletResponse));
-             *   }
-			 **/
-
+			handleIntentRequest(
+				event.request,
+                event.session,
+                function callback(sessionAttributes, speechletResponse) {
+                    context.succeed(buildResponse(sessionAttributes, speechletResponse));
+                }
+			);
         } else if (event.request.type === "SessionEndedRequest") {
             onSessionEnded(event.request, event.session);
             context.succeed();
@@ -77,15 +73,17 @@ function onLaunch(launchRequest, session, callback) {
  */
 function handleIntentRequest(intentRequest, session, callback) {
 
+    // get intent info
+	var intent = intentRequest.intent
+    var intentName = intentRequest.intent.name;
 
-	/**
-	 * TODO:
-	 * - get intent from intentRequest
-	 * - get intentName from intent
-	 * - check intentName for "WikiIntent" then call handleWikiIntent(intent, session, callback)
-	 * - if intentName is not "WikiIntent" throw an error "Invalid intent " + intentName
-	 **/
-
+    // check for intent types
+    if (intentName == "WikiIntent") {
+        handleWikiIntent(intent, session, callback)
+    } else {
+        // handle invalid Intents
+		throw "Invalid intent " + intentName
+    }
 }
 
 /**
@@ -121,11 +119,8 @@ function getWelcomeResponse(callback) {
 function handleWikiIntent(intent, session, callback) {
 
 	// get info from intent
-	/**
-	 * TODO:
-	 * - get 'wikiSlot' from 'intent.slots', check also Intents from Alexa Skill for the right name
-	 **/
-
+	//const wikiSlot = intent.slots.WikiSearch;
+	const wikiSlot = intent.slots.WikiSearch;
     let wikiSearch;
     if (wikiSlot && wikiSlot.value) {
         wikiSearch = wikiSlot.value.toLowerCase();
@@ -155,12 +150,11 @@ function handleWikiIntent(intent, session, callback) {
  **/
 function urlOptionsWiki(searchString) {
 
-	/**
-	 * TODO:
-	 * - return the url for wikipedia api call
-	 * - e.g. http://de.wikipedia.org/w/api.php?action=query&format=json&list=search&utf8=1&srsearch=Bruce+Wayne
-	 * - our given 'searchString' should look like 'Bruce Wayne'
-	 **/
+	// prepare search string
+	searchString.split(' ').join('+');
+
+    // return wikipedia api url options
+	return "http://de.wikipedia.org/w/api.php?action=query&format=json&list=search&utf8=1&srsearch=" + searchString.split(' ').join('+');
 }
 
 /**
@@ -181,17 +175,11 @@ function urlOptions....() {
  * handle http request
  **/
 function getHTTPResponse(urlOptions,callback) {
-
-	/**
-	 * TODO:
-	 * - use 'get' method from 'request' module
-	 * INPUT:
-	 * - urlOptions
-	 * - function(error, response, body) {
-     *     var jsonBody = JSON.parse(body);
-     *     callback(jsonBody);
-     *   }
-	 **/
+    // http request
+    request.get(urlOptions, function(error, response, body) {
+        var jsonBody = JSON.parse(body);
+        callback(jsonBody);
+    })
 }
 
 /**
