@@ -22,6 +22,7 @@ exports.handler = function (event, context) {
             onSessionStarted({requestId: event.request.requestId}, event.session);
         }
 
+		// handle launch
         if (event.request.type === "LaunchRequest") {
             onLaunch(
 				event.request,
@@ -35,13 +36,17 @@ exports.handler = function (event, context) {
 			 * handover request and session
 			 * handover callback that suceeds the context, important for asynch calls e.g. POST, GET REST calls
 			**/
-			handleIntentRequest(
-				event.request,
-                event.session,
-                function callback(sessionAttributes, speechletResponse) {
-                    context.succeed(buildResponse(sessionAttributes, speechletResponse));
-                }
-			);
+
+			/**
+			 * TODO: make a function that handles intent requests
+			 * INPUT:
+			 * - event.request
+			 * - event.session
+			 * - function callback(sessionAttributes, speechletResponse) {
+             *     context.succeed(buildResponse(sessionAttributes, speechletResponse));
+             *   }
+			 **/
+
         } else if (event.request.type === "SessionEndedRequest") {
             onSessionEnded(event.request, event.session);
             context.succeed();
@@ -72,17 +77,15 @@ function onLaunch(launchRequest, session, callback) {
  */
 function handleIntentRequest(intentRequest, session, callback) {
 
-    // get intent info
-	var intent = intentRequest.intent
-    var intentName = intentRequest.intent.name;
 
-    // check for intent types
-    if (intentName == "WikiIntent") {
-        handleWikiIntent(intent, session, callback)
-    } else {
-        // handle invalid Intents
-		throw "Invalid intent " + intentName
-    }
+	/**
+	 * TODO:
+	 * - get intent from intentRequest
+	 * - get intentName from intent
+	 * - check intentName for "WikiIntent" then call handleWikiIntent(intent, session, callback)
+	 * - if intentName is not "WikiIntent" throw an error "Invalid intent " + intentName
+	 **/
+
 }
 
 /**
@@ -111,81 +114,84 @@ function getWelcomeResponse(callback) {
 
 }
 
+/**
+ * handle the wiki intent request
+ *
+ **/
 function handleWikiIntent(intent, session, callback) {
 
 	// get info from intent
-	//const wikiSlot = intent.slots.WikiSearch;
-	const wikiSlot = intent.slots.WikiSearch;
+	/**
+	 * TODO:
+	 * - get 'wikiSlot' from 'intent.slots', check also Intents from Alexa Skill for the right name
+	 **/
+
     let wikiSearch;
     if (wikiSlot && wikiSlot.value) {
         wikiSearch = wikiSlot.value.toLowerCase();
     }
 
-	console.log("DEBUG: func handleWikiIntent wikiSearch='" + wikiSearch + "'");
-
-    var speechOutput = "Es gab leider einen Fehler"
-
     // get http response
-	getHTTPResponse(urlOptionsWiki(wikiSearch),function(data) {
-        if (data != "ERROR") {
-            var speechOutput = wikiSearch + " hat insgesamt: " + data + " Einträge in Wikipedia";
+	getHTTPResponse(urlOptionsWiki(wikiSearch),function(jsonResponse) {
+
+		var speechOutput = "Es gab leider einen Fehler"
+		// get total hits from result
+		var result = jsonResponse.query.searchinfo.totalhits;
+
+		// check result
+		if (result > 0) {
+            var speechOutput = wikiSearch + " hat insgesamt: " + result + " Einträge in Wikipedia";
         }
+
+		// callback build speech out
         callback(session.attributes, buildSpeechletResponseWithoutCard(speechOutput, "", true))
     })
 
 }
 
+/**
+ * build wikipedia url
+ *
+ **/
 function urlOptionsWiki(searchString) {
 
-	console.log("DEBUG: func urlOptionsWiki searchString='" + searchString + "'");
-
-	searchString.split(' ').join('+')
-
-    return "http://de.wikipedia.org/w/api.php?action=query&format=json&list=search&utf8=1&srsearch=" + searchString.split(' ').join('+');
+	/**
+	 * TODO:
+	 * - return the url for wikipedia api call
+	 * - e.g. http://de.wikipedia.org/w/api.php?action=query&format=json&list=search&utf8=1&srsearch=Bruce+Wayne
+	 * - our given 'searchString' should look like 'Bruce Wayne'
+	 **/
 }
 
-function urlOptionsTweetConn(headers) {
-	return {
-		url: "http://207.154.192.89:3000/tweets",
-		headers: {
-			'Authorization': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE0OTkxNTk5Mjh9.tWHIXBcdZvtOofhbkxS9yFa4R9lM-Skhcgs5Vg3zi0g'
-		}
-	}
-}
-
-function urlOptionsNYTimes() {
+/**
+ * TODO: try to make an https url for a rest call
+function urlOptions....() {
     return {
-        url: "https://api.nytimes.com/svc/books/v3/lists.json",
+        url: "https://api.xxx.com/.../.../vX/....json",
         qs: {
-            "api-key" : "8430ae194d0a446a8b1b9b9d607b2acc",
-            "list" : "hardcover-fiction"
+            "api-key" : "XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            "pram" : "value"
         }
+		//TODO: find out how to create Authentication
     }
 }
+**/
 
+/**
+ * handle http request
+ **/
 function getHTTPResponse(urlOptions,callback) {
-    // http request to wikipedia
-    request.get(urlOptions, function(error, response, body) {
-        var d = JSON.parse(body)
-        var result = d.query.searchinfo.totalhits
-        if (result > 0) {
-            callback(result);
-        } else {
-            callback("ERROR")
-        }
-    })
-}
-function getHTTSPResponse(urlOptions,callback) {
-    // https request
-    request.get(urlOptions, function(error, response, body) {
-        var d = JSON.parse(body)
-        var result = d.results
-        if (result.length > 0) {
-            callback(result[0].book_details[0].title)
-        } else {
-            callback("ERROR")
-        }
-    })
+
+	/**
+	 * TODO:
+	 * - use 'get' method from 'request' module
+	 * INPUT:
+	 * - urlOptions
+	 * - function(error, response, body) {
+     *     var jsonBody = JSON.parse(body);
+     *     callback(jsonBody);
+     *   }
+	 **/
 }
 
 /**
@@ -235,8 +241,4 @@ function buildResponse(sessionAttributes, speechletResponse) {
         sessionAttributes: sessionAttributes,
         response: speechletResponse
     };
-}
-
-function capitalizeFirst(s) {
-    return s.charAt(0).toUpperCase() + s.slice(1)
 }
